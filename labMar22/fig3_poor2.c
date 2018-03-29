@@ -3,7 +3,7 @@
 #include <pthread.h>
 
 int done = 0;
-//pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t c = PTHREAD_COND_INITIALIZER;
 
 void thr_exit() {
@@ -19,7 +19,7 @@ void *child(void *arg){
 
 void thr_join() {
   if(done == 0)
-    pthread_cond_wait(&c);
+    pthread_cond_wait(&c, &m);
 }
 
 int main(int argc, char *argv[]){

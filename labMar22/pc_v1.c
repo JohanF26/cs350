@@ -1,0 +1,51 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <assert.h>
+
+int buffer;
+int count = 0; //initially empty
+
+void put(int value){
+  assert(count == 0);
+  count = 1;
+  buffer = value;
+}
+
+int get() {
+  assert(count == 1);
+  count = 0;
+  return buffer;
+}
+
+void *producer(void *arg){
+  int i;
+  int loops = (int) arg;
+  for (i = 0; i<loops; i++){
+    put(i);
+  }
+}
+
+void *consumer(void *arg){
+  int i;
+  while(1){
+    int tmp = get();
+    printf("%d\n", tmp);
+  }
+}
+
+int main(int argc, char *argv[]){
+  printf("parent: begin\n");
+  pthread_t prod;
+  pthread_t cons;
+  pthread_create(&prod, NULL, producer, 5);
+  pthread_create(&cons, NULL, consumer, 5);
+  thr_join();
+  printf("parent: end\n");
+  return 0;
+}
+
+
+
+
+///
