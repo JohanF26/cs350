@@ -13,7 +13,9 @@ struct page{
 };
 
 void noLocality(int* pagesToAccess);
+void eighty20(int* pagesToAccess);
 void lru(int* pagesToAccess, struct page* mainMem, int* retHits, int memSize);
+void fifo(int* pagesToAccess, struct page* mainMem, int* retHits, int memSize);
 
 int main(int argc, char** argv){
   //parse the input from the command line
@@ -25,6 +27,7 @@ int main(int argc, char** argv){
   int* pagesToAccess = malloc(PAGE_ACCESSES * sizeof(int));
   int memSize;
   int hits = 0;
+  double hitRate = 0;
 
 
   int currArg;
@@ -61,7 +64,7 @@ int main(int argc, char** argv){
     if(strcmp(workload, "No-locality") == 0){
       noLocality(pagesToAccess);
     } else if(strcmp(workload, "80-20") == 0){
-      //Alan's code
+      eighty20(pagesToAccess);
     } else if(strcmp(workload, "Looping") == 0){
       //Alan's code
     } else{
@@ -78,14 +81,13 @@ int main(int argc, char** argv){
     }
 
     //switch statement to choose between the different page replacement algorithms
-    printf("%s\n", repPolicy);
 
     if(strcmp(repPolicy, "OPT") == 0){
       //Alan's function
     } else if(strcmp(repPolicy, "LRU") == 0){
       lru(pagesToAccess, mainMem, &hits, memSize);
     } else if(strcmp(repPolicy, "FIFO") == 0){
-
+      fifo(pagesToAccess, mainMem, &hits, memSize);
     } else if(strcmp(repPolicy, "Rand") == 0){
 
     } else if(strcmp(repPolicy, "Clock") == 0){
@@ -94,8 +96,10 @@ int main(int argc, char** argv){
       return 0;
     }
 
-//    fprintf(stderr, "prog4swap [-m %d] [-r %s] [-w %s]\n", memSize, repPolicy, workload);
-    printf("hits: %d\n", hits);
+    hitRate = (double) hits/PAGE_ACCESSES;
+    hitRate = hitRate * 100;
+
+    printf("%lf", hitRate);
     return 0;
 }
 
@@ -108,6 +112,20 @@ void noLocality(int* pagesToAccess){
     //keeps pages between 0-99 so we add 1
     pagesToAccess[i] = (rand() % PAGES) + 1;
   }
+}
+
+void eighty20(int* pagesToAccess){
+  //seed the random with the time
+  srand(time(0));
+  int eightyPercent = (int)(PAGE_ACCESSES-(0.20*PAGE_ACCESSES));
+  for(int i = 0; i < eightyPercent; i++){
+    pagesToAccess[i] = (rand() % 20) + 1;
+  }
+  for(int i = eightyPercent; i < PAGE_ACCESSES; i++){
+    //numbers will be between 0 and 79 so we had 21 to be 21-100
+    pagesToAccess[i] = (rand() % 80) + 21;
+  }
+
 }
 
 //////////         REPLACEMENT POLICIES         //////////
@@ -126,7 +144,6 @@ void lru(int* pagesToAccess, struct page* mainMem, int* retHits, int memSize){
     leastRecent.lastAccessed = p + 1;
     h = 0;
     for(int m = 0; m < memSize; m++){
-      //printf("Value at %d: page: %d, time: %d\n" , m, mainMem[m].pageNum, mainMem[m].lastAccessed);
       if(p == 0){
         //load first value into main memory
         mainMem[0].pageNum = pagesToAccess[0];
@@ -136,10 +153,8 @@ void lru(int* pagesToAccess, struct page* mainMem, int* retHits, int memSize){
         if(mainMem[m].pageNum == pagesToAccess[p]){
           //increase hits and update the acess time
           hits += 1;
-          //printf("found %d\n", mainMem[m].pageNum);
           mainMem[m].lastAccessed = p + 1;
           h = 1;
-          //printf("hits %d\n", hits);
           break;
         } else if(mainMem[m].lastAccessed < leastRecent.lastAccessed){
           //if last time a page was accessed is less than the previous
@@ -156,7 +171,6 @@ void lru(int* pagesToAccess, struct page* mainMem, int* retHits, int memSize){
       continue;
     } else{
       //change last recently used to page asked to access
-      //printf("Replaced page %d with page %d\n", mainMem[lrIndex].pageNum, pagesToAccess[p]);
       mainMem[lrIndex].pageNum = pagesToAccess[p];
       mainMem[lrIndex].lastAccessed = p + 1;
     }
@@ -166,6 +180,52 @@ void lru(int* pagesToAccess, struct page* mainMem, int* retHits, int memSize){
   *retHits = hits;
 
 }
+
+void fifo(int* pagesToAccess, struct page* mainMem, int* retHits, int memSize){
+  int hits = 0;
+  int fifoIndex = 0;
+  int h = 0;
+
+  //p stands for page and m stands for memory
+  //p index of page we are looking for
+  //m index of current page in main memory
+  for(int p = 0; p < PAGE_ACCESSES; p++){
+    h = 0;
+    for(int m = 0; m < memSize; m++){
+      if(mainMem[m].pageNum == pagesToAccess[p]){
+        //increase hits and update the acess time
+        hits += 1;
+        h = 1;
+        //printf("found: %d, hits %d\n", pagesToAccess[p], hits);
+        break;
+      }
+    }
+    //move to the next page if there was a hit
+    if(h == 1){
+      continue;
+    } else{
+      //change last recently used to page asked to access
+      //printf("Replaced page %d with page %d\n", mainMem[fifoIndex%memSize].pageNum, pagesToAccess[p]);
+      mainMem[fifoIndex%memSize].pageNum = pagesToAccess[p];
+      fifoIndex++;
+    }
+
+  }
+  //update the amount of hits
+  *retHits = hits;
+
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
